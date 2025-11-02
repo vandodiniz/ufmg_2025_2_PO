@@ -6,17 +6,17 @@ import pulp
 def build_model() -> Tuple[pulp.LpProblem, Dict[Tuple[int, int], pulp.LpVariable], Dict[Tuple[int, int, int], pulp.LpVariable]]:
     """Cria o modelo MIP conforme especificado no README.
 
-    Retorna o problema (modelo) e os dicion·rios de vari·veis X_ij e W_ijk.
+    Retorna o problema (modelo) e os dicion√°rios de vari√°veis X_ij e W_ijk.
     """
-    # Conjuntos (Ìndices)
+    # Conjuntos (√≠ndices)
     employees: List[int] = list(range(1, 19))  # i in {1..18}
     shifts: List[int] = list(range(1, 5))      # j in {1..4}
     lines: List[int] = [1, 2, 3]               # k in {1..3} (1 Flexlab, 2 Atellica, 3 Immulite)
 
-    # Par‚metros: custos por turno (1,2 diurnos; 3,4 noturnos)
+    # Par√¢metros: custos por turno (1,2 diurnos; 3,4 noturnos)
     shift_cost: Dict[int, int] = {1: 1, 2: 1, 3: 2, 4: 2}
 
-    # Par‚metro de disponibilidade Y_ik (tabela do README)
+    # Par√¢metro de disponibilidade Y_ik (tabela do README)
     availability: Dict[Tuple[int, int], int] = {}
     raw_rows = {
         1:  (1, 1, 1),
@@ -44,20 +44,20 @@ def build_model() -> Tuple[pulp.LpProblem, Dict[Tuple[int, int], pulp.LpVariable
         availability[(i, 2)] = k2
         availability[(i, 3)] = k3
 
-    # Cobertura mÌnima por linha e por turno (para cada j)
-    min_cover: Dict[int, int] = {1: 1, 2: 2, 3: 2}  # k: mÌnimo
+    # Cobertura m√≠nima por linha e por turno (para cada j)
+    min_cover: Dict[int, int] = {1: 1, 2: 2, 3: 2}  # k: m√≠nimo
 
     # Modelo
     model = pulp.LpProblem("Escalas_CSE_MIP", pulp.LpMinimize)
 
-    # Vari·veis bin·rias X_ij: 1 se colaborador i atende ao turno j
+    # Vari√°veis bin√°rias X_ij: 1 se colaborador i atende ao turno j
     x_vars: Dict[Tuple[int, int], pulp.LpVariable] = {
         (i, j): pulp.LpVariable(f"X_{i}_{j}", lowBound=0, upBound=1, cat=pulp.LpBinary)
         for i in employees
         for j in shifts
     }
 
-    # Vari·veis bin·rias W_ijk: 1 se colaborador i trabalha na linha k e turno j
+    # Vari√°veis bin√°rias W_ijk: 1 se colaborador i trabalha na linha k e turno j
     w_vars: Dict[Tuple[int, int, int], pulp.LpVariable] = {
         (i, j, k): pulp.LpVariable(f"W_{i}_{j}_{k}", lowBound=0, upBound=1, cat=pulp.LpBinary)
         for i in employees
@@ -65,24 +65,24 @@ def build_model() -> Tuple[pulp.LpProblem, Dict[Tuple[int, int], pulp.LpVariable
         for k in lines
     }
 
-    # FunÁ„o objetivo: minimizar custo total som_j c_j * X_ij
+    # Fun√ß√£o objetivo: minimizar custo total som_j c_j * X_ij
     model += pulp.lpSum(shift_cost[j] * x_vars[(i, j)] for i in employees for j in shifts), "Minimize_Shift_Cost"
 
-    # RestriÁ„o 1: Cobertura mÌnima por linha k em cada turno j
+    # Restri√ß√£o 1: Cobertura m√≠nima por linha k em cada turno j
     for j in shifts:
         for k in lines:
             model += (
                 pulp.lpSum(w_vars[(i, j, k)] for i in employees) >= min_cover[k]
             ), f"MinCover_k{k}_j{j}"
 
-    # RestriÁ„o 2: AlocaÁ„o m·xima por colaborador (no m·ximo 1 turno)
+    # Restri√ß√£o 2: Aloca√ß√£o m√°xima por colaborador (no m√°ximo 1 turno)
     for i in employees:
         model += (
             pulp.lpSum(x_vars[(i, j)] for j in shifts) <= 1
         ), f"MaxOneShift_i{i}"
 
-    # RestriÁ„o 3: LinearizaÁ„o W_ijk = X_ij * Y_ik
-    # ImplementaÁ„o padr„o:
+    # Restri√ß√£o 3: Lineariza√ß√£o W_ijk = X_ij * Y_ik
+    # Implementa√ß√£o padr√£o:
     #   W_ijk <= X_ij
     #   W_ijk <= Y_ik
     #   W_ijk >= X_ij + Y_ik - 1
@@ -93,7 +93,7 @@ def build_model() -> Tuple[pulp.LpProblem, Dict[Tuple[int, int], pulp.LpVariable
                 # W_ijk <= X_ij
                 model += w_vars[(i, j, k)] <= x_vars[(i, j)], f"W_le_X_i{i}_j{j}_k{k}"
                 # W_ijk <= Y_ik
-                # quando Y_ik È 0/1 constante, isso È igual a W_ijk <= y_ik
+                # quando Y_ik √© 0/1 constante, isso √© igual a W_ijk <= y_ik
                 model += w_vars[(i, j, k)] <= y_ik, f"W_le_Y_i{i}_k{k}_j{j}"
                 # W_ijk >= X_ij + Y_ik - 1
                 model += w_vars[(i, j, k)] >= x_vars[(i, j)] + y_ik - 1, f"W_ge_XplusYminus1_i{i}_j{j}_k{k}"
@@ -102,10 +102,10 @@ def build_model() -> Tuple[pulp.LpProblem, Dict[Tuple[int, int], pulp.LpVariable
 
 
 def solve_and_format() -> str:
-    """Resolve o modelo e retorna uma string formatada com a soluÁ„o."""
+    """Resolve o modelo e retorna uma string formatada com a solu√ß√£o."""
     model, x_vars, w_vars = build_model()
 
-    # Resolver com solver padr„o do PuLP (CBC incluso)
+    # Resolver com solver padr√£o do PuLP (CBC incluso)
     model.solve(pulp.PULP_CBC_CMD(msg=False))
 
     status = pulp.LpStatus[model.status]
@@ -113,15 +113,15 @@ def solve_and_format() -> str:
     lines.append(f"Status: {status}")
 
     if status not in {"Optimal", "Feasible"}:
-        lines.append("Nenhuma soluÁ„o vi·vel encontrada.")
+        lines.append("Nenhuma solu√ß√£o vi√°vel encontrada.")
         return "\n".join(lines)
 
     # Valor objetivo
     obj = pulp.value(model.objective)
     lines.append(f"Custo total (Z): {obj:.2f}")
 
-    # Imprimir X_ij atribuÌdos
-    lines.append("\nAtribuiÁıes por colaborador e turno (X_ij = 1):")
+    # Imprimir X_ij atribu√≠dos
+    lines.append("\nAtribui√ß√µes por colaborador e turno (X_ij = 1):")
     for (i, j), var in sorted(x_vars.items()):
         if var.value() is not None and var.value() > 0.5:
             lines.append(f" - Colaborador {i} no Turno {j}")
