@@ -15,6 +15,13 @@ def build_model() -> Tuple[pulp.LpProblem, Dict[Tuple[int, int], pulp.LpVariable
 
     # Parâmetros: custos por turno (1,2 diurnos; 3,4 noturnos)
     shift_cost: Dict[int, int] = {1: 1, 2: 1, 3: 2, 4: 2}
+    
+    # Custo por funcionário
+    employee_cost: Dict[int, float] = {
+        1: 100.0, 2: 110.0, 3: 120.0, 4: 130.0, 5: 140.0, 6: 150.0,
+        7: 160.0, 8: 170.0, 9: 180.0, 10: 190.0, 11: 200.0, 12: 210.0,
+        13: 220.0, 14: 230.0, 15: 240.0, 16: 250.0, 17: 260.0, 18: 270.0
+    }
 
     # Parâmetro de disponibilidade Y_ik (tabela do README)
     availability: Dict[Tuple[int, int], int] = {}
@@ -65,8 +72,8 @@ def build_model() -> Tuple[pulp.LpProblem, Dict[Tuple[int, int], pulp.LpVariable
         for k in lines
     }
 
-    # Função objetivo: minimizar custo total som_j c_j * X_ij
-    model += pulp.lpSum(shift_cost[j] * x_vars[(i, j)] for i in employees for j in shifts), "Minimize_Shift_Cost"
+    # Função objetivo: minimizar custo total (custos de turno + custo por funcionário)
+    model += pulp.lpSum((shift_cost[j] + employee_cost[i]) * x_vars[(i, j)] for i in employees for j in shifts), "Minimize_Total_Cost"
 
     # Restrição 1: Cobertura mínima por linha k em cada turno j
     for j in shifts:

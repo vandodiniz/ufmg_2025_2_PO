@@ -1,72 +1,75 @@
-# RestriÁıes do Modelo de OtimizaÁ„o de Escalas (MIP)
+# Restri√ß√µes do Modelo de Otimiza√ß√£o de Escalas (MIP)
 
-Este documento lista as restriÁıes do problema de OtimizaÁ„o de Escalas de CSE's entre Turnos, modelado como um problema de ProgramaÁ„o Inteira Mista (MIP).
+Este documento lista as restri√ß√µes do problema de Otimiza√ß√£o de Escalas de CSE's entre Turnos, modelado como um problema de Programa√ß√£o Inteira Mista (MIP).
 
 ---
 
-## Vari·veis de Decis„o e Par‚metros
+## Vari√°veis de Decis√£o e Par√¢metros
 
-### Par‚metros e Õndices
+### Par√¢metros e √≠ndices
 * **$i \in \{1, 18\}$:** Colaboradores.
 * **$j \in \{1, 4\}$:** Turnos (Diurno A, Diurno B, Noturno A, Noturno B).
 * **$k \in \{1, 3\}$:** Linhas de Atendimento (Flexlab, Atellica, Immulite).
 
-### Vari·veis Bin·rias
-* **$X_{ij}$:** 1 se o colaborador $i$ atende ao turno $j$, 0 caso contr·rio.
-* **$Y_{ik}$:** 1 se o colaborador $i$ atende ‡ linha $k$, 0 caso contr·rio.
-* **$W_{ijk}$:** Vari·vel auxiliar para linearizaÁ„o; 1 se o colaborador $i$ trabalha na linha $k$ e no turno $j$, 0 caso contr·rio.
+### Vari√°veis Bin√°rias
+* **$X_{ij}$:** 1 se o colaborador $i$ atende ao turno $j$, 0 caso contr√°rio.
+* **$Y_{ik}$:** 1 se o colaborador $i$ atende √† linha $k$, 0 caso contr√°rio.
+* **$W_{ijk}$:** Vari√°vel auxiliar para lineariza√ß√£o; 1 se o colaborador $i$ trabalha na linha $k$ e no turno $j$, 0 caso contr√°rio.
 
 ---
 
-## RestriÁıes do Modelo
+## Restri√ß√µes do Modelo
 
-### 1. Cobertura MÌnima por Linha e Turno
+### 1. Cobertura M√≠nima por Linha e Turno
 
-O n˙mero de colaboradores escalados deve garantir a cobertura mÌnima exigida em cada linha ($k$) e em todos os turnos ($j$). A soma È feita sobre todos os colaboradores ($i$).
+O n√∫mero de colaboradores escalados deve garantir a cobertura m√≠nima exigida em cada linha ($k$) e em todos os turnos ($j$). A soma √© feita sobre todos os colaboradores ($i$).
 
-| Linha ($k$) | Cobertura MÌnima | RestriÁ„o Matem·tica (usando $W_{ijk}$) |
+| Linha ($k$) | Cobertura M√≠nima | Restri√ß√£o Matem√°tica (usando $W_{ijk}$) |
 | :---: | :---: | :---: |
 | **Flexlab** ($k=1$) | Pelo menos 1 pessoa | $\sum_{i=1}^{18} W_{i, j, 1} \ge 1, \quad \forall j \in \{1, 4\}$ |
 | **Atellica** ($k=2$) | Pelo menos 2 pessoas | $\sum_{i=1}^{18} W_{i, j, 2} \ge 2, \quad \forall j \in \{1, 4\}$ |
 | **Immulite** ($k=3$) | Pelo menos 2 pessoas | $\sum_{i=1}^{18} W_{i, j, 3} \ge 2, \quad \forall j \in \{1, 4\}$ |
 
-### 2. AlocaÁ„o M·xima do Funcion·rio
+### 2. Aloca√ß√£o M√°xima do Funcion√°rio
 
-Cada funcion·rio ($i$) sÛ pode ser alocado em, no m·ximo, 1 turno ($j$).
+Cada funcion√°rio ($i$) s√≥ pode ser alocado em, no m√°ximo, 1 turno ($j$).
 
 $$
 \sum_{j=1}^{4} X_{ij} \le 1, \quad \forall i \in \{1, 18\}
 $$
 
-### 3. LinearizaÁ„o e DomÌnio
+### 3. Lineariza√ß√£o e Dom√≠nio
 
-A vari·vel auxiliar $W_{ijk}$ substitui o produto n„o-linear ($X_{ij} \cdot Y_{ik}$) para manter a estrutura MIP do modelo. A equivalÍncia È definida pelas restriÁıes de linearizaÁ„o.
+A vari√°vel auxiliar $W_{ijk}$ substitui o produto n√£o-linear ($X_{ij} \cdot Y_{ik}$) para manter a estrutura MIP do modelo. A equival√™ncia √© definida pelas restri√ß√µes de lineariza√ß√£o.
 
-**DomÌnio das Vari·veis:**
+**Dom√≠nio das Vari√°veis:**
 
-Todas as vari·veis de decis„o s„o bin·rias:
+Todas as vari√°veis de decis√£o s√£o bin√°rias:
 $$
 X_{ij}, Y_{ik}, W_{ijk} \in \{0, 1\}
 $$
 
-**EquivalÍncia LÛgica (Implementada por RestriÁıes):**
+**Equival√™ncia L√≥gica (Implementada por Restri√ß√µes):**
 $$
 W_{ijk} = X_{ij} \cdot Y_{ik}
 $$
 
 ---
-**FunÁ„o Objetivo:**
+**Fun√ß√£o Objetivo:**
 
-A funÁ„o objetivo, que busca minimizar o custo total de alocaÁ„o (penalizando turnos noturnos), È:
+A fun√ß√£o objetivo, que busca minimizar o custo total de aloca√ß√£o (considerando custos de turno e custos por funcion√°rio), √©:
 
 $$
-\text{Min } Z = \sum_{i=1}^{18} \sum_{j=1}^{4} c_j X_{ij}
+\text{Min } Z = \sum_{i=1}^{18} \sum_{j=1}^{4} (c_j + e_i) X_{ij}
 $$
-*Onde $c_j$ È o custo do turno $j$ ($c_j=1$ para diurnos e $c_j=2$ para noturnos).*
+
+Onde:
+* $c_j$ √© o custo do turno $j$ ($c_j=1$ para turnos diurnos e $c_j=2$ para turnos noturnos).
+* $e_i$ √© o custo do colaborador $i$ (cada colaborador tem um custo associado, variando de 100 a 270 unidades).
 
 ### 4. Tabela de dados
-# Vari·vel de Disponibilidade: $Y_{ik}$
-*1 se o colaborador $i$ atende ‡ linha $k$, 0 caso contr·rio.*
+# Vari√°vel de Disponibilidade: $Y_{ik}$
+*1 se o colaborador $i$ atende √† linha $k$, 0 caso contr√°rio.*
 
 | Colaborador (i) | k=1 (Flexlab) | k=2 (Atellica) | k=3 (Immulite) |
 | :-------------: | :-----------: | :------------: | :------------: |
