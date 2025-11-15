@@ -1,182 +1,128 @@
-
 from typing import Dict, List, Tuple
-
 import pulp
 
-
 def build_model() -> Tuple[pulp.LpProblem, Dict[Tuple[int, int], pulp.LpVariable], Dict[Tuple[int, int, int], pulp.LpVariable]]:
-    """Cria o modelo MIP conforme especificado no README.
-
-    Retorna o problema (modelo) e os dicionários de variáveis X_ij e W_ijk.
-    """
-    # Conjuntos (índices)
-    employees: List[int] = list(range(1, 19))  # i in {1..18}
-    shifts: List[int] = list(range(1, 5))      # j in {1..4}
-    lines: List[int] = [1, 2, 3]               # k in {1..3} (1 Flexlab, 2 Atellica, 3 Immulite)
-
-    # Parâmetros: custos por turno (1,2 diurnos; 3,4 noturnos)
-    shift_cost: Dict[int, int] = {1: 1, 2: 1, 3: 2, 4: 2}
-
-    # Parâmetro de disponibilidade Y_ik (tabela do README)
-    availability: Dict[Tuple[int, int], int] = {}
+    """Cria o modelo MIP com todas as restrições e função objetivo correta."""
+    
+    # Conjuntos
+    employees: List[int] = list(range(1, 19))  # 18 funcionários
+    shifts: List[int] = list(range(1, 5))      # 4 turnos
+    lines: List[int] = [1, 2, 3]               # 3 linhas
+    
+    # Custos
+    shift_cost: Dict[int, int] = {1:1, 2:1, 3:2, 4:2}  # diurno=1, noturno=2
+    employee_cost: Dict[int, float] = {            # custo por funcionário
+        1:100.0,2:110.0,3:120.0,4:130.0,5:140.0,6:150.0,
+        7:160.0,8:170.0,9:180.0,10:190.0,11:200.0,12:210.0,
+        13:220.0,14:230.0,15:240.0,16:250.0,17:260.0,18:270.0
+    }
+    
+    # Disponibilidade por linha (Y_ik)
+    availability: Dict[Tuple[int,int], int] = {}
     raw_rows = {
-        1:  (1, 1, 1),
-        2:  (0, 1, 1),
-        3:  (1, 1, 1),
-        4:  (1, 1, 1),
-        5:  (0, 1, 1),
-        6:  (0, 1, 1),
-        7:  (1, 1, 0),
-        8:  (0, 1, 1),
-        9:  (1, 1, 0),
-        10: (1, 0, 1),
-        11: (0, 1, 1),
-        12: (0, 1, 1),
-        13: (1, 1, 0),
-        14: (0, 1, 0),
-        15: (0, 1, 1),
-        16: (1, 0, 0),
-        17: (0, 1, 1),
-        18: (1, 0, 1),
+        1:  (1,1,1), 2: (0,1,1), 3: (1,1,1), 4: (1,1,1),
+        5:  (0,1,1), 6: (0,1,1), 7: (1,1,0), 8: (0,1,1),
+        9:  (1,1,0), 10: (1,0,1), 11: (0,1,1), 12: (0,1,1),
+        13: (1,1,0), 14: (0,1,0), 15: (0,1,1), 16: (1,0,0),
+        17: (0,1,1), 18: (1,0,1)
     }
     for i in employees:
-        k1, k2, k3 = raw_rows[i]
-        availability[(i, 1)] = k1
-        availability[(i, 2)] = k2
-        availability[(i, 3)] = k3
+        k1,k2,k3 = raw_rows[i]
+        availability[(i,1)] = k1
+        availability[(i,2)] = k2
+        availability[(i,3)] = k3
 
-    # ----- Skill weights (peso de habilidade) -----
-    # Exemplo: 0 = não sabe, 1 = básico, 3 = confortável, 5 = especialista
-    skill_level: Dict[Tuple[int, int], int] = {}
+    # Nível de habilidade por linha (skill_level)
+    skill_level: Dict[Tuple[int,int], int] = {}
     raw_skill = {
-        1:  (5, 3, 3),
-        2:  (1, 3, 3),
-        3:  (3, 3, 5),
-        4:  (3, 3, 3),
-        5:  (1, 3, 3),
-        6:  (1, 3, 1),
-        7:  (3, 3, 0),
-        8:  (1, 3, 3),
-        9:  (3, 3, 0),
-        10: (5, 0, 3),
-        11: (1, 3, 3),
-        12: (1, 3, 3),
-        13: (5, 3, 0),
-        14: (1, 3, 0),
-        15: (1, 3, 3),
-        16: (5, 0, 0),
-        17: (1, 3, 3),
-        18: (5, 0, 3),
+        1: (5,3,3), 2:(1,3,3), 3:(3,3,5), 4:(3,3,3),
+        5: (1,3,3), 6:(1,3,1), 7:(3,3,0), 8:(1,3,3),
+        9: (3,3,0), 10:(5,0,3), 11:(1,3,3), 12:(1,3,3),
+        13:(5,3,0), 14:(1,3,0), 15:(1,3,3), 16:(5,0,0),
+        17:(1,3,3), 18:(5,0,3)
     }
     for i in employees:
-        s1, s2, s3 = raw_skill[i]
-        skill_level[(i, 1)] = s1
-        skill_level[(i, 2)] = s2
-        skill_level[(i, 3)] = s3
+        s1,s2,s3 = raw_skill[i]
+        skill_level[(i,1)] = s1
+        skill_level[(i,2)] = s2
+        skill_level[(i,3)] = s3
 
-    # Demanda mínima em termos de soma de skill por linha (exemplos)
-    min_skill_required: Dict[int, int] = {1: 6, 2: 8, 3: 7}
-
-    # Cobertura mínima por linha e por turno (para cada j)
-    min_cover: Dict[int, int] = {1: 1, 2: 2, 3: 2}  # k: mínimo
+    # Demandas mínimas
+    min_skill_required: Dict[int,int] = {1:6,2:8,3:7}  # skill mínima por linha
+    min_cover: Dict[int,int] = {1:1,2:2,3:2}          # cobertura mínima de pessoas
 
     # Modelo
-    model = pulp.LpProblem("Escalas_CSE_MIP_Skill", pulp.LpMinimize)
+    model = pulp.LpProblem("Escalas_CSE_MIP", pulp.LpMinimize)
 
-    # Variáveis binárias X_ij: 1 se colaborador i atende ao turno j
-    x_vars: Dict[Tuple[int, int], pulp.LpVariable] = {
-        (i, j): pulp.LpVariable(f"X_{i}_{j}", lowBound=0, upBound=1, cat=pulp.LpBinary)
-        for i in employees
-        for j in shifts
-    }
+    # Variáveis
+    x_vars = {(i,j): pulp.LpVariable(f"X_{i}_{j}", cat=pulp.LpBinary)
+              for i in employees for j in shifts}
+    w_vars = {(i,j,k): pulp.LpVariable(f"W_{i}_{j}_{k}", cat=pulp.LpBinary)
+              for i in employees for j in shifts for k in lines}
 
-    # Variáveis binárias W_ijk: 1 se colaborador i trabalha na linha k e turno j
-    w_vars: Dict[Tuple[int, int, int], pulp.LpVariable] = {
-        (i, j, k): pulp.LpVariable(f"W_{i}_{j}_{k}", lowBound=0, upBound=1, cat=pulp.LpBinary)
-        for i in employees
-        for j in shifts
-        for k in lines
-    }
+    # Função objetivo: custo total = custo turno + custo funcionário
+    model += pulp.lpSum((shift_cost[j] + employee_cost[i]) * x_vars[(i,j)]
+                        for i in employees for j in shifts), "MinCost"
 
-    # Função objetivo: minimizar custo total som_j c_j * X_ij
-    model += pulp.lpSum(shift_cost[j] * x_vars[(i, j)] for i in employees for j in shifts), "Minimize_Shift_Cost"
-
-    # Restrição 1 (modificada): Cobertura mínima ponderada por skill por linha k em cada turno j
+    # Restrição 1: cobertura mínima de skill por linha e turno
     for j in shifts:
         for k in lines:
-            model += (
-                pulp.lpSum(skill_level[(i, k)] * w_vars[(i, j, k)] for i in employees) >= min_skill_required[k]
-            ), f"MinSkillCover_k{k}_j{j}"
+            model += pulp.lpSum(skill_level[(i,k)]*w_vars[(i,j,k)] for i in employees) >= min_skill_required[k], f"MinSkill_k{k}_j{j}"
 
-    # Restrição 2: Alocação máxima por colaborador (no máximo 1 turno)
+    # Restrição 2: cobertura mínima de pessoas por linha e turno
+    for j in shifts:
+        for k in lines:
+            model += pulp.lpSum(w_vars[(i,j,k)] for i in employees) >= min_cover[k], f"MinCover_k{k}_j{j}"
+
+    # Restrição 3: cada funcionário trabalha no máximo 1 turno
     for i in employees:
-        model += (
-            pulp.lpSum(x_vars[(i, j)] for j in shifts) <= 1
-        ), f"MaxOneShift_i{i}"
+        model += pulp.lpSum(x_vars[(i,j)] for j in shifts) <= 1, f"MaxOneShift_i{i}"
 
-    # Restrição 3: Linearização W_ijk = X_ij * Y_ik
-    # Implementação padrão:
-    #   W_ijk <= X_ij
-    #   W_ijk <= Y_ik
-    #   W_ijk >= X_ij + Y_ik - 1
+    # Restrição 4: linearização W_ijk = X_ij * Y_ik
     for i in employees:
         for j in shifts:
             for k in lines:
-                y_ik = availability[(i, k)]
-                # W_ijk <= X_ij
-                model += w_vars[(i, j, k)] <= x_vars[(i, j)], f"W_le_X_i{i}_j{j}_k{k}"
-                # W_ijk <= Y_ik
-                # quando Y_ik é 0/1 constante, isso é igual a W_ijk <= y_ik
-                model += w_vars[(i, j, k)] <= y_ik, f"W_le_Y_i{i}_k{k}_j{j}"
-                # W_ijk >= X_ij + Y_ik - 1
-                model += w_vars[(i, j, k)] >= x_vars[(i, j)] + y_ik - 1, f"W_ge_XplusYminus1_i{i}_j{j}_k{k}"
+                y_ik = availability[(i,k)]
+                model += w_vars[(i,j,k)] <= x_vars[(i,j)], f"W_le_X_i{i}_j{j}_k{k}"
+                model += w_vars[(i,j,k)] <= y_ik, f"W_le_Y_i{i}_k{k}_j{j}"
+                model += w_vars[(i,j,k)] >= x_vars[(i,j)] + y_ik - 1, f"W_ge_XplusYminus1_i{i}_j{j}_k{k}"
 
-    return model, x_vars, w_vars, skill_level, min_skill_required
-
+    return model, x_vars, w_vars, skill_level, min_skill_required, min_cover
 
 def solve_and_format() -> str:
-    """Resolve o modelo e retorna uma string formatada com a solução."""
-    model, x_vars, w_vars, skill_level, min_skill_required = build_model()
-
-    # Resolver com solver padrão do PuLP (CBC incluso)
+    model, x_vars, w_vars, skill_level, min_skill_required, min_cover = build_model()
     model.solve(pulp.PULP_CBC_CMD(msg=False))
 
     status = pulp.LpStatus[model.status]
-    lines: List[str] = []
-    lines.append(f"Status: {status}")
+    lines: List[str] = [f"Status: {status}"]
 
-    if status not in {"Optimal", "Feasible"}:
+    if status not in {"Optimal","Feasible"}:
         lines.append("Nenhuma solução viável encontrada.")
         return "\n".join(lines)
 
     # Valor objetivo
-    obj = pulp.value(model.objective)
-    lines.append(f"Custo total (Z): {obj:.2f}")
+    lines.append(f"Custo total: {pulp.value(model.objective):.2f}")
 
-    # Imprimir X_ij atribuídos
-    lines.append("\nAtribuições por colaborador e turno (X_ij = 1):")
-    for (i, j), var in sorted(x_vars.items()):
-        if var.value() is not None and var.value() > 0.5:
+    # Atribuições X_ij
+    lines.append("\nAtribuições por colaborador e turno:")
+    for (i,j), var in sorted(x_vars.items()):
+        if var.value() > 0.5:
             lines.append(f" - Colaborador {i} no Turno {j}")
 
-    # Resumo de cobertura por linha e turno via W_ijk (pessoas e soma de skill)
-    lines.append("\nCobertura por linha e turno (pessoas e skill_sum via W_ijk):")
-    employees = sorted({i for (i, _j) in {(i, j) for (i, j) in x_vars.keys()}})
-    shifts = sorted({j for (_i, j) in x_vars.keys()})
-    lines_k = [1, 2, 3]
+    # Cobertura W_ijk
+    lines.append("\nCobertura por linha e turno (pessoas e skill_sum):")
+    employees = sorted({i for (i,_j) in x_vars.keys()})
+    shifts = sorted({j for (_i,j) in x_vars.keys()})
     for j in shifts:
-        for k in lines_k:
-            cover_jk = sum(w_vars[(i, j, k)].value() or 0 for i in employees)
-            skill_sum_jk = sum((skill_level[(i, k)] * (w_vars[(i, j, k)].value() or 0)) for i in employees)
-            lines.append(f" - Turno {j}, Linha {k}: pessoas={int(round(cover_jk))}, skill_sum={int(round(skill_sum_jk))}, req_skill={min_skill_required[k]}")
+        for k in [1,2,3]:
+            cover = sum(w_vars[(i,j,k)].value() for i in employees)
+            skill_sum = sum(skill_level[(i,k)]*w_vars[(i,j,k)].value() for i in employees)
+            lines.append(f" - Turno {j}, Linha {k}: pessoas={int(round(cover))}, skill_sum={int(round(skill_sum))}, req_skill={min_skill_required[k]}, min_pessoas={min_cover[k]}")
 
     return "\n".join(lines)
 
-
-def main() -> None:
-    result = solve_and_format()
-    print(result)
-
+def main():
+    print(solve_and_format())
 
 if __name__ == "__main__":
     main()
