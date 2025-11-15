@@ -1,3 +1,4 @@
+
 from typing import Dict, List, Tuple
 
 import pulp
@@ -51,11 +52,43 @@ def build_model() -> Tuple[pulp.LpProblem, Dict[Tuple[int, int], pulp.LpVariable
         availability[(i, 2)] = k2
         availability[(i, 3)] = k3
 
+    # ----- Skill weights (peso de habilidade) -----
+    # Exemplo: 0 = não sabe, 1 = básico, 3 = confortável, 5 = especialista
+    skill_level: Dict[Tuple[int, int], int] = {}
+    raw_skill = {
+        1:  (5, 3, 3),
+        2:  (1, 3, 3),
+        3:  (3, 3, 5),
+        4:  (3, 3, 3),
+        5:  (1, 3, 3),
+        6:  (1, 3, 1),
+        7:  (3, 3, 0),
+        8:  (1, 3, 3),
+        9:  (3, 3, 0),
+        10: (5, 0, 3),
+        11: (1, 3, 3),
+        12: (1, 3, 3),
+        13: (5, 3, 0),
+        14: (1, 3, 0),
+        15: (1, 3, 3),
+        16: (5, 0, 0),
+        17: (1, 3, 3),
+        18: (5, 0, 3),
+    }
+    for i in employees:
+        s1, s2, s3 = raw_skill[i]
+        skill_level[(i, 1)] = s1
+        skill_level[(i, 2)] = s2
+        skill_level[(i, 3)] = s3
+
+    # Demanda mínima em termos de soma de skill por linha (exemplos)
+    min_skill_required: Dict[int, int] = {1: 6, 2: 8, 3: 7}
+
     # Cobertura mínima por linha e por turno (para cada j)
     min_cover: Dict[int, int] = {1: 1, 2: 2, 3: 2}  # k: mínimo
 
     # Modelo
-    model = pulp.LpProblem("Escalas_CSE_MIP", pulp.LpMinimize)
+    model = pulp.LpProblem("Escalas_CSE_MIP_Skill", pulp.LpMinimize)
 
     # Variáveis binárias X_ij: 1 se colaborador i atende ao turno j
     x_vars: Dict[Tuple[int, int], pulp.LpVariable] = {
@@ -75,12 +108,12 @@ def build_model() -> Tuple[pulp.LpProblem, Dict[Tuple[int, int], pulp.LpVariable
     # Função objetivo: minimizar custo total (custos de turno + custo por funcionário)
     model += pulp.lpSum((shift_cost[j] + employee_cost[i]) * x_vars[(i, j)] for i in employees for j in shifts), "Minimize_Total_Cost"
 
-    # Restrição 1: Cobertura mínima por linha k em cada turno j
+    # Restrição 1 (modificada): Cobertura mínima ponderada por skill por linha k em cada turno j
     for j in shifts:
         for k in lines:
             model += (
-                pulp.lpSum(w_vars[(i, j, k)] for i in employees) >= min_cover[k]
-            ), f"MinCover_k{k}_j{j}"
+                pulp.lpSum(skill_level[(i, k)] * w_vars[(i, j, k)] for i in employees) >= min_skill_required[k]
+            ), f"MinSkillCover_k{k}_j{j}"
 
     # Restrição 2: Alocação máxima por colaborador (no máximo 1 turno)
     for i in employees:
@@ -105,12 +138,12 @@ def build_model() -> Tuple[pulp.LpProblem, Dict[Tuple[int, int], pulp.LpVariable
                 # W_ijk >= X_ij + Y_ik - 1
                 model += w_vars[(i, j, k)] >= x_vars[(i, j)] + y_ik - 1, f"W_ge_XplusYminus1_i{i}_j{j}_k{k}"
 
-    return model, x_vars, w_vars
+    return model, x_vars, w_vars, skill_level, min_skill_required
 
 
 def solve_and_format() -> str:
     """Resolve o modelo e retorna uma string formatada com a solução."""
-    model, x_vars, w_vars = build_model()
+    model, x_vars, w_vars, skill_level, min_skill_required = build_model()
 
     # Resolver com solver padrão do PuLP (CBC incluso)
     model.solve(pulp.PULP_CBC_CMD(msg=False))
@@ -133,15 +166,16 @@ def solve_and_format() -> str:
         if var.value() is not None and var.value() > 0.5:
             lines.append(f" - Colaborador {i} no Turno {j}")
 
-    # Resumo de cobertura por linha e turno via W_ijk
-    lines.append("\nCobertura por linha e turno (soma W_ijk):")
+    # Resumo de cobertura por linha e turno via W_ijk (pessoas e soma de skill)
+    lines.append("\nCobertura por linha e turno (pessoas e skill_sum via W_ijk):")
     employees = sorted({i for (i, _j) in {(i, j) for (i, j) in x_vars.keys()}})
     shifts = sorted({j for (_i, j) in x_vars.keys()})
     lines_k = [1, 2, 3]
     for j in shifts:
         for k in lines_k:
             cover_jk = sum(w_vars[(i, j, k)].value() or 0 for i in employees)
-            lines.append(f" - Turno {j}, Linha {k}: {int(round(cover_jk))}")
+            skill_sum_jk = sum((skill_level[(i, k)] * (w_vars[(i, j, k)].value() or 0)) for i in employees)
+            lines.append(f" - Turno {j}, Linha {k}: pessoas={int(round(cover_jk))}, skill_sum={int(round(skill_sum_jk))}, req_skill={min_skill_required[k]}")
 
     return "\n".join(lines)
 
@@ -153,5 +187,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-
