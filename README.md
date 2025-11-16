@@ -17,6 +17,7 @@ Este documento lista as restrições do problema de Otimização de Escalas de C
 - **$X_{ij}$:** 1 se o colaborador $i$ atende ao turno $j$, 0 caso contrário.
 - **$Y_{ik}$:** 1 se o colaborador $i$ atende à linha $k$, 0 caso contrário.
 - **$W_{ijk}$:** Variável auxiliar para linearização; 1 se o colaborador $i$ trabalha na linha $k$ e no turno $j$, 0 caso contrário.
+- **$S_i$ (swap):** 1 se o colaborador $i$ for alocado em período oposto ao seu período original (Diurno↔Noturno), 0 caso contrário.
 
 ---
 
@@ -49,7 +50,7 @@ A variável auxiliar $W_{ijk}$ substitui o produto não-linear ($X_{ij} \cdot Y_
 Todas as variáveis de decisão são binárias:
 
 $$
-X_{ij}, Y_{ik}, W_{ijk} \in \{0, 1\}
+X_{ij}, Y_{ik}, W_{ijk}, S_i \in \{0, 1\}
 $$
 
 **Equivalência Lógica (Implementada por Restrições):**
@@ -60,22 +61,52 @@ $$
 
 ---
 
-**Função Objetivo:**
+### 4. Nova Restrição — Engenheiro só pode trabalhar em turnos compatíveis com sua categoria (com penalização para D↔N)
 
-A função objetivo, que busca minimizar o custo total de alocação (considerando custos de turno e custos por funcionário), é:
+Cada colaborador tem uma categoria inicial (MDA/MDB → diurno; MNA/MNB → noturno).
+
+**Regra implementada no modelo:**
+
+- O engenheiro **pode** mudar entre subturnos dentro do mesmo período (A↔B ou N1↔N2) **sem custo**.
+- O engenheiro **pode** ser alocado em período oposto (Diurno ↔ Noturno), **porém** essa escolha ativa a variável $S_i$ (swap) e gera um custo adicional na função objetivo para penalizar essa troca.
+
+**Como isso é modelado:**
+
+- Se o colaborador $i$ é originalmente **diurno** (MDA/MDB), então
 
 $$
-\text{Min } Z = \sum_{i=1}^{18} \sum_{j=1}^{4} (c_j + e_i) X_{ij}
+S_i \ge X_{i3}, \qquad S_i \ge X_{i4}
+$$
+
+- Se o colaborador $i$ é originalmente **noturno** (MNA/MNB), então
+
+$$
+S_i \ge X_{i1}, \qquad S_i \ge X_{i2}
+$$
+
+A variável $S_i$ assume valor 1 sempre que $i$ for alocado em um turno de período contrário ao seu original; o termo de penalização $p \cdot S_i$ é somado à função objetivo (no seu código $p$ foi definido como 5000 por padrão).
+
+---
+
+## Função Objetivo
+
+A função objetivo do seu modelo minimiza o custo total de alocação **incluindo** a penalização por troca de período:
+
+$$
+\text{Min } Z = \sum_{i=1}^{18} \sum_{j=1}^{4} (c_j + e_i) X_{ij} \;+\; p\sum_{i=1}^{18} S_i
 $$
 
 Onde:
 
 - $c_j$ é o custo do turno $j$ ($c_j=1$ para turnos diurnos e $c_j=2$ para turnos noturnos).
 - $e_i$ é o custo do colaborador $i$ (cada colaborador tem um custo associado, variando de 100 a 270 unidades).
+- $p$ é o parâmetro de penalização por troca Diurno↔Noturno (no código atual $p=5000$).
 
-### 4. Tabelas de dados
+---
 
-# Variável de Disponibilidade: $Y_{ik}$
+# Tabelas de dados
+
+## 1. Variável de Disponibilidade: $Y_{ik}$
 
 _1 se o colaborador $i$ atende à linha $k$, 0 caso contrário._
 
@@ -100,7 +131,9 @@ _1 se o colaborador $i$ atende à linha $k$, 0 caso contrário._
 |       17        |       0       |       1        |       1        |
 |       18        |       1       |       0        |       1        |
 
-## Custo por Turno
+---
+
+## 2. Custo por Turno
 
 | Turno | Custo |
 | ----- | ----- |
@@ -109,7 +142,9 @@ _1 se o colaborador $i$ atende à linha $k$, 0 caso contrário._
 | 3     | 2     |
 | 4     | 2     |
 
-## Custo por Funcionário
+---
+
+## 3. Custo por Funcionário
 
 | Funcionário | Custo |
 | ----------- | ----- |
@@ -132,7 +167,9 @@ _1 se o colaborador $i$ atende à linha $k$, 0 caso contrário._
 | 17          | 260.0 |
 | 18          | 270.0 |
 
-## Skill Level por Engenheiro e Linha
+---
+
+## 4.Skill Level por Engenheiro e Linha
 
 | Eng | L1  | L2  | L3  |
 | --- | --- | --- | --- |
@@ -154,3 +191,28 @@ _1 se o colaborador $i$ atende à linha $k$, 0 caso contrário._
 | 16  | 5   | 0   | 0   |
 | 17  | 1   | 3   | 3   |
 | 18  | 5   | 0   | 3   |
+
+---
+
+## 5. Categoria dos Engenheiros
+
+| Engenheiro | Categoria |
+| ---------- | --------- |
+| 1          | MDA       |
+| 2          | MDB       |
+| 3          | MDA       |
+| 4          | MDA       |
+| 5          | MNB       |
+| 6          | MNB       |
+| 7          | MNA       |
+| 8          | MNA       |
+| 9          | MNB       |
+| 10         | MDA       |
+| 11         | MDB       |
+| 12         | MDB       |
+| 13         | MDB       |
+| 14         | MNA       |
+| 15         | MDA       |
+| 16         | MDB       |
+| 17         | MNA       |
+| 18         | MNB       |
