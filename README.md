@@ -7,14 +7,16 @@ Este documento lista as restrições do problema de Otimização de Escalas de C
 ## Variáveis de Decisão e Parâmetros
 
 ### Parâmetros e índices
-* **$i \in \{1, 18\}$:** Colaboradores.
-* **$j \in \{1, 4\}$:** Turnos (Diurno A, Diurno B, Noturno A, Noturno B).
-* **$k \in \{1, 3\}$:** Linhas de Atendimento (Flexlab, Atellica, Immulite).
+
+- **$i \in \{1, 18\}$:** Colaboradores.
+- **$j \in \{1, 4\}$:** Turnos (Diurno A, Diurno B, Noturno A, Noturno B).
+- **$k \in \{1, 3\}$:** Linhas de Atendimento (Flexlab, Atellica, Immulite).
 
 ### Variáveis Binárias
-* **$X_{ij}$:** 1 se o colaborador $i$ atende ao turno $j$, 0 caso contrário.
-* **$Y_{ik}$:** 1 se o colaborador $i$ atende à linha $k$, 0 caso contrário.
-* **$W_{ijk}$:** Variável auxiliar para linearização; 1 se o colaborador $i$ trabalha na linha $k$ e no turno $j$, 0 caso contrário.
+
+- **$X_{ij}$:** 1 se o colaborador $i$ atende ao turno $j$, 0 caso contrário.
+- **$Y_{ik}$:** 1 se o colaborador $i$ atende à linha $k$, 0 caso contrário.
+- **$W_{ijk}$:** Variável auxiliar para linearização; 1 se o colaborador $i$ trabalha na linha $k$ e no turno $j$, 0 caso contrário.
 
 ---
 
@@ -24,9 +26,9 @@ Este documento lista as restrições do problema de Otimização de Escalas de C
 
 O número de colaboradores escalados deve garantir a cobertura mínima exigida em cada linha ($k$) e em todos os turnos ($j$). A soma é feita sobre todos os colaboradores ($i$).
 
-| Linha ($k$) | Cobertura Mínima | Restrição Matemática (usando $W_{ijk}$) |
-| :---: | :---: | :---: |
-| **Flexlab** ($k=1$) | Pelo menos 1 pessoa | $\sum_{i=1}^{18} W_{i, j, 1} \ge 1, \quad \forall j \in \{1, 4\}$ |
+|     Linha ($k$)      |   Cobertura Mínima   |              Restrição Matemática (usando $W_{ijk}$)              |
+| :------------------: | :------------------: | :---------------------------------------------------------------: |
+| **Flexlab** ($k=1$)  | Pelo menos 1 pessoa  | $\sum_{i=1}^{18} W_{i, j, 1} \ge 1, \quad \forall j \in \{1, 4\}$ |
 | **Atellica** ($k=2$) | Pelo menos 2 pessoas | $\sum_{i=1}^{18} W_{i, j, 2} \ge 2, \quad \forall j \in \{1, 4\}$ |
 | **Immulite** ($k=3$) | Pelo menos 2 pessoas | $\sum_{i=1}^{18} W_{i, j, 3} \ge 2, \quad \forall j \in \{1, 4\}$ |
 
@@ -45,16 +47,19 @@ A variável auxiliar $W_{ijk}$ substitui o produto não-linear ($X_{ij} \cdot Y_
 **Domínio das Variáveis:**
 
 Todas as variáveis de decisão são binárias:
+
 $$
 X_{ij}, Y_{ik}, W_{ijk} \in \{0, 1\}
 $$
 
 **Equivalência Lógica (Implementada por Restrições):**
+
 $$
 W_{ijk} = X_{ij} \cdot Y_{ik}
 $$
 
 ---
+
 **Função Objetivo:**
 
 A função objetivo, que busca minimizar o custo total de alocação (considerando custos de turno e custos por funcionário), é:
@@ -64,30 +69,88 @@ $$
 $$
 
 Onde:
-* $c_j$ é o custo do turno $j$ ($c_j=1$ para turnos diurnos e $c_j=2$ para turnos noturnos).
-* $e_i$ é o custo do colaborador $i$ (cada colaborador tem um custo associado, variando de 100 a 270 unidades).
 
-### 4. Tabela de dados
+- $c_j$ é o custo do turno $j$ ($c_j=1$ para turnos diurnos e $c_j=2$ para turnos noturnos).
+- $e_i$ é o custo do colaborador $i$ (cada colaborador tem um custo associado, variando de 100 a 270 unidades).
+
+### 4. Tabelas de dados
+
 # Variável de Disponibilidade: $Y_{ik}$
-*1 se o colaborador $i$ atende à linha $k$, 0 caso contrário.*
+
+_1 se o colaborador $i$ atende à linha $k$, 0 caso contrário._
 
 | Colaborador (i) | k=1 (Flexlab) | k=2 (Atellica) | k=3 (Immulite) |
 | :-------------: | :-----------: | :------------: | :------------: |
-| 1 | 1 | 1 | 1 |
-| 2 | 0 | 1 | 1 |
-| 3 | 1 | 1 | 1 |
-| 4 | 1 | 1 | 1 |
-| 5 | 0 | 1 | 1 |
-| 6 | 0 | 1 | 1 |
-| 7 | 1 | 1 | 0 |
-| 8 | 0 | 1 | 1 |
-| 9 | 1 | 1 | 0 |
-| 10 | 1 | 0 | 1 |
-| 11 | 0 | 1 | 1 |
-| 12 | 0 | 1 | 1 |
-| 13 | 1 | 1 | 0 |
-| 14 | 0 | 1 | 0 |
-| 15 | 0 | 1 | 1 |
-| 16 | 1 | 0 | 0 |
-| 17 | 0 | 1 | 1 |
-| 18 | 1 | 0 | 1 |
+|        1        |       1       |       1        |       1        |
+|        2        |       0       |       1        |       1        |
+|        3        |       1       |       1        |       1        |
+|        4        |       1       |       1        |       1        |
+|        5        |       0       |       1        |       1        |
+|        6        |       0       |       1        |       1        |
+|        7        |       1       |       1        |       0        |
+|        8        |       0       |       1        |       1        |
+|        9        |       1       |       1        |       0        |
+|       10        |       1       |       0        |       1        |
+|       11        |       0       |       1        |       1        |
+|       12        |       0       |       1        |       1        |
+|       13        |       1       |       1        |       0        |
+|       14        |       0       |       1        |       0        |
+|       15        |       0       |       1        |       1        |
+|       16        |       1       |       0        |       0        |
+|       17        |       0       |       1        |       1        |
+|       18        |       1       |       0        |       1        |
+
+## Custo por Turno
+
+| Turno | Custo |
+| ----- | ----- |
+| 1     | 1     |
+| 2     | 1     |
+| 3     | 2     |
+| 4     | 2     |
+
+## Custo por Funcionário
+
+| Funcionário | Custo |
+| ----------- | ----- |
+| 1           | 100.0 |
+| 2           | 110.0 |
+| 3           | 120.0 |
+| 4           | 130.0 |
+| 5           | 140.0 |
+| 6           | 150.0 |
+| 7           | 160.0 |
+| 8           | 170.0 |
+| 9           | 180.0 |
+| 10          | 190.0 |
+| 11          | 200.0 |
+| 12          | 210.0 |
+| 13          | 220.0 |
+| 14          | 230.0 |
+| 15          | 240.0 |
+| 16          | 250.0 |
+| 17          | 260.0 |
+| 18          | 270.0 |
+
+## Skill Level por Engenheiro e Linha
+
+| Eng | L1  | L2  | L3  |
+| --- | --- | --- | --- |
+| 1   | 5   | 3   | 3   |
+| 2   | 1   | 3   | 3   |
+| 3   | 3   | 3   | 5   |
+| 4   | 3   | 3   | 3   |
+| 5   | 1   | 3   | 3   |
+| 6   | 1   | 3   | 1   |
+| 7   | 3   | 3   | 0   |
+| 8   | 1   | 3   | 3   |
+| 9   | 3   | 3   | 0   |
+| 10  | 5   | 0   | 3   |
+| 11  | 1   | 3   | 3   |
+| 12  | 1   | 3   | 3   |
+| 13  | 5   | 3   | 0   |
+| 14  | 1   | 3   | 0   |
+| 15  | 1   | 3   | 3   |
+| 16  | 5   | 0   | 0   |
+| 17  | 1   | 3   | 3   |
+| 18  | 5   | 0   | 3   |

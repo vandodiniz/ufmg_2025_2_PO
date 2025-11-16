@@ -2,14 +2,14 @@ from typing import Dict, List, Tuple
 import pulp
 
 def build_model() -> Tuple[pulp.LpProblem, Dict[Tuple[int, int], pulp.LpVariable], Dict[Tuple[int, int, int], pulp.LpVariable]]:
-    """Cria o modelo MIP com todas as restrições e função objetivo correta."""
+    """Construção da modelagem inteira linear mista"""
     
-    # Conjuntos
+    # definição dos conjuntos
     employees: List[int] = list(range(1, 19))  # 18 funcionários
     shifts: List[int] = list(range(1, 5))      # 4 turnos
-    lines: List[int] = [1, 2, 3]               # 3 linhas
+    lines: List[int] = [1, 2, 3]               # 3 linhas de atendimento
     
-    # Custos
+    # Custos estabelecidos
     shift_cost: Dict[int, int] = {1:1, 2:1, 3:2, 4:2}  # diurno=1, noturno=2
     employee_cost: Dict[int, float] = {            # custo por funcionário
         1:100.0,2:110.0,3:120.0,4:130.0,5:140.0,6:150.0,
@@ -17,7 +17,7 @@ def build_model() -> Tuple[pulp.LpProblem, Dict[Tuple[int, int], pulp.LpVariable
         13:220.0,14:230.0,15:240.0,16:250.0,17:260.0,18:270.0
     }
     
-    # Disponibilidade por linha (Y_ik)
+    # Disponibilidade por linha (Y_ik) que define se um engenheiro i atende a linha k
     availability: Dict[Tuple[int,int], int] = {}
     raw_rows = {
         1:  (1,1,1), 2: (0,1,1), 3: (1,1,1), 4: (1,1,1),
@@ -32,7 +32,7 @@ def build_model() -> Tuple[pulp.LpProblem, Dict[Tuple[int, int], pulp.LpVariable
         availability[(i,2)] = k2
         availability[(i,3)] = k3
 
-    # Nível de habilidade por linha (skill_level)
+    # Nível de habilidade por linha, que define o nível de habilidade de um engenheiro em relação a uma linha
     skill_level: Dict[Tuple[int,int], int] = {}
     raw_skill = {
         1: (5,3,3), 2:(1,3,3), 3:(3,3,5), 4:(3,3,3),
@@ -47,9 +47,9 @@ def build_model() -> Tuple[pulp.LpProblem, Dict[Tuple[int, int], pulp.LpVariable
         skill_level[(i,2)] = s2
         skill_level[(i,3)] = s3
 
-    # Demandas mínimas
-    min_skill_required: Dict[int,int] = {1:6,2:8,3:7}  # skill mínima por linha
-    min_cover: Dict[int,int] = {1:1,2:2,3:2}          # cobertura mínima de pessoas
+    # Demandas mínimas 
+    min_skill_required: Dict[int,int] = {1:6,2:8,3:7}  #nível de habilidade mínima por linha
+    min_cover: Dict[int,int] = {1:1,2:2,3:2}          # cobertura mínima de engenheiro por linha 
 
     # Modelo
     model = pulp.LpProblem("Escalas_CSE_MIP", pulp.LpMinimize)
@@ -64,17 +64,17 @@ def build_model() -> Tuple[pulp.LpProblem, Dict[Tuple[int, int], pulp.LpVariable
     model += pulp.lpSum((shift_cost[j] + employee_cost[i]) * x_vars[(i,j)]
                         for i in employees for j in shifts), "MinCost"
 
-    # Restrição 1: cobertura mínima de skill por linha e turno
+    # Restrição 1: cobertura mínima de habilidade por linha e turno
     for j in shifts:
         for k in lines:
             model += pulp.lpSum(skill_level[(i,k)]*w_vars[(i,j,k)] for i in employees) >= min_skill_required[k], f"MinSkill_k{k}_j{j}"
 
-    # Restrição 2: cobertura mínima de pessoas por linha e turno
+    # Restrição 2: cobertura mínima de engenheiro por linha e turno
     for j in shifts:
         for k in lines:
             model += pulp.lpSum(w_vars[(i,j,k)] for i in employees) >= min_cover[k], f"MinCover_k{k}_j{j}"
 
-    # Restrição 3: cada funcionário trabalha no máximo 1 turno
+    # Restrição 3: cada engenheiro trabalha no máximo 1 turno
     for i in employees:
         model += pulp.lpSum(x_vars[(i,j)] for j in shifts) <= 1, f"MaxOneShift_i{i}"
 

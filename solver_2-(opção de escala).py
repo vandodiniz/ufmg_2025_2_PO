@@ -1,6 +1,6 @@
 from typing import Dict, List, Tuple
 import pulp
-
+#exclusivamente para geração de escalas factíveis
 def build_model() -> Tuple[pulp.LpProblem, Dict[Tuple[int, int], pulp.LpVariable], Dict[Tuple[int, int, int], pulp.LpVariable]]:
 
     employees = list(range(1, 19))
