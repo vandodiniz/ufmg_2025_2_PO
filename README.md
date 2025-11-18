@@ -86,6 +86,31 @@ $$
 
 A variável $S_i$ assume valor 1 sempre que $i$ for alocado em um turno de período contrário ao seu original; o termo de penalização $p \cdot S_i$ é somado à função objetivo (no seu código $p$ foi definido como 5000 por padrão).
 
+
+### 5. Cobertura mínima de habilidade técnica (skill)
+
+Cada linha de produção possui um nível mínimo de habilidade técnica requerido para sua operação. Os engenheiros possuem um índice de *skill* por linha, indicando sua capacidade de atuação naquele contexto operacional.
+
+**Regra implementada no modelo:**
+
+A soma dos níveis de habilidade técnica dos engenheiros alocados em cada linha e turno deve ser **maior ou igual** ao valor mínimo exigido para operar a linha de maneira segura e eficiente.
+
+**Como isso é modelado:**
+
+Para cada turno $j$ e linha $k$:
+
+$$
+\sum_{i=1}^{18} \left(skill_{i,k} \cdot W_{i,j,k}\right) \geq min\_skill\_required_k
+$$
+
+Onde:
+
+- $skill_{i,k}$ → nível de habilidade técnica do colaborador *i* na linha *k* (valor inteiro, ex.: 0 a 5);
+- $W_{i,j,k}$ → variável de alocação (1 se o engenheiro *i* trabalha na linha *k* no turno *j*, caso contrário 0);
+- $min\_skill\_required_k$ → valor mínimo de skill exigido para operação da linha *k*.
+
+Essa restrição garante que, além da quantidade mínima de pessoas por linha, o time escalado possui a **capacidade técnica necessária** para desempenhar as atividades de forma adequada.
+
 ---
 
 ## Função Objetivo
@@ -103,6 +128,7 @@ Onde:
 - $p$ é o parâmetro de penalização por troca Diurno↔Noturno (no código atual $p=5000$).
 
 ---
+
 
 # Tabelas de dados
 
@@ -216,4 +242,14 @@ _1 se o colaborador $i$ atende à linha $k$, 0 caso contrário._
 | 16         | MDB       |
 | 17         | MNA       |
 | 18         | MNB       |
+
+### 6. Skill mínima requerida por linha
+
+| Linha ($k$)     | Descrição     | Skill mínima requerida ($min\_skill\_required_k$) |
+|-----------------|---------------|--------------------------------------------------|
+| **1**           | Flexlab       | **6**                                            |
+| **2**           | Atellica      | **8**                                            |
+| **3**           | Immulite      | **8**                                            |
+
+
 
