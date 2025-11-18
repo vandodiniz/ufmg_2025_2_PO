@@ -61,7 +61,7 @@ $$
 
 ---
 
-### 4. Nova Restrição — Engenheiro só pode trabalhar em turnos compatíveis com sua categoria (com penalização para D↔N)
+### 4.Engenheiro só pode trabalhar em turnos compatíveis com sua categoria (com penalização para D↔N)
 
 Cada colaborador tem uma categoria inicial (MDA/MDB → diurno; MNA/MNB → noturno).
 
@@ -216,3 +216,4 @@ _1 se o colaborador $i$ atende à linha $k$, 0 caso contrário._
 | 16         | MDB       |
 | 17         | MNA       |
 | 18         | MNB       |
+
